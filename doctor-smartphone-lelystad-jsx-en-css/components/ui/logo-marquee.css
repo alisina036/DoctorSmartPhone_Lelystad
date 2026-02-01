@@ -1,0 +1,64 @@
+.logo-marquee {
+  background: #ffffff;
+  overflow: hidden;
+  border-top: 1px solid #e5edf7;
+  border-bottom: 1px solid #e5edf7;
+  padding: 28px 0 22px;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-weight: 700;
+}
+
+.logo-marquee__track {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+  width: max-content;
+  animation: marquee 26s linear infinite;
+  padding: 6px 0;
+  will-change: transform;
+}
+
+.logo-marquee:hover .logo-marquee__track {
+  animation-play-state: paused;
+}
+
+.logo-marquee__item {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 4px 12px;
+}
+
+.logo-marquee__item img {
+  height: 46px;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.9;
+  filter: grayscale(1) saturate(0) contrast(1.15);
+  transition: opacity 0.2s ease;
+}
+
+.logo-marquee__item img:hover {
+  opacity: 1;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (max-width: 768px) {
+  .logo-marquee__track {
+    gap: 28px;
+  }
+
+  .logo-marquee__item img {
+    height: 36px;
+  }
+}

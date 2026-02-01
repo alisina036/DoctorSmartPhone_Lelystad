@@ -1,0 +1,6 @@
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build]
+  command = "npm install nanoid --legacy-peer-deps && npm run build"
+  publish = ".next"
