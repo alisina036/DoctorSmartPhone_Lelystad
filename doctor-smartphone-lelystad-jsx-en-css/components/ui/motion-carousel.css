@@ -10,6 +10,16 @@
   backdrop-filter: blur(10px);
 }
 
+/* Mobile optimalisaties */
+@media (max-width: 640px) {
+  .carousel-container {
+    border-radius: 16px;
+    padding: 12px;
+    --outer-r: 16px;
+    --p-distance: 8px;
+  }
+}
+
 .carousel-track {
   display: flex;
 }
@@ -35,6 +45,9 @@
 
 .carousel-container.round {
   border: 1px solid rgba(255, 255, 255, 0.2);
+  aspect-ratio: 1 / 1;
+  height: auto;
+  border-radius: 50%;
 }
 
 .carousel-item.round {
@@ -47,6 +60,8 @@
   text-align: center;
   border-radius: 50%;
   overflow: hidden;
+  aspect-ratio: 1 / 1;
+  height: auto;
 }
 
 .carousel-item-header.round {
@@ -73,6 +88,13 @@
   transform: translateX(-50%);
 }
 
+/* Mobile indicators voor round carousel */
+@media (max-width: 640px) {
+  .carousel-indicators-container.round {
+    bottom: 2em;
+  }
+}
+
 .carousel-indicator.active {
   background-color: rgba(255, 255, 255, 0.9);
 }
@@ -96,6 +118,13 @@
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.3);
+}
+
+/* Mobile image container */
+@media (max-width: 640px) {
+  .carousel-image-container {
+    height: 200px;
+  }
 }
 
 .carousel-image-background {
@@ -135,6 +164,14 @@
   width: 100%;
 }
 
+/* Mobile content padding */
+@media (max-width: 640px) {
+  .carousel-item-content {
+    padding: 12px;
+    padding-bottom: 12px;
+  }
+}
+
 .carousel-item-title {
   margin-bottom: 8px;
   font-weight: 700;
@@ -150,6 +187,19 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
+/* Mobile typography */
+@media (max-width: 640px) {
+  .carousel-item-title {
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+  
+  .carousel-item-description {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+}
+
 .carousel-indicators-container {
   display: flex;
   width: 100%;
@@ -162,6 +212,15 @@
   width: 150px;
   justify-content: space-between;
   padding: 0 32px;
+}
+
+/* Mobile indicators */
+@media (max-width: 640px) {
+  .carousel-indicators {
+    margin-top: 12px;
+    width: 120px;
+    padding: 0 24px;
+  }
 }
 
 .carousel-indicator {
