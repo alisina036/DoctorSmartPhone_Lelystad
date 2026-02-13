@@ -10,13 +10,12 @@ const DYMO_PATHS = {
   print: '/dcd/api/print-label'
 }
 const DYMO_CHECK_TIMEOUT = 2000
+const DYMO_SERVICE_URL = 'https://localhost:41951'
+const DYMO_PRINTERS_URL = `${DYMO_SERVICE_URL}${DYMO_PATHS.printers}`
 const DYMO_CLASSIC_SERVICE_URL = 'http://localhost:41951/DYMO/DymoAddIn/Service.asmx'
 
 const buildServiceCandidates = () => {
-  const protocols = ['https', 'http']
-  return protocols.flatMap((protocol) =>
-    DYMO_PORTS.map((port) => `${protocol}://${DYMO_HOST}:${port}`)
-  )
+  return [DYMO_SERVICE_URL]
 }
 
 const normalizePrinters = (data) => {
@@ -29,13 +28,20 @@ const normalizePrinters = (data) => {
 
 const pickPrinterName = (printers) => {
   const normalized = printers
-    .map((printer) => (typeof printer === 'string' ? printer : printer.name))
-    .filter(Boolean)
+    .map((printer) => {
+      if (typeof printer === 'string') return { name: printer, isConnected: true }
+      if (!printer || typeof printer !== 'object') return null
+      return {
+        name: printer.name || printer.Name,
+        isConnected: typeof printer.isConnected === 'boolean' ? printer.isConnected : printer.IsConnected
+      }
+    })
+    .filter((printer) => printer && printer.name)
 
   if (!normalized.length) return null
 
-  const preferred = normalized.find((name) => /labelwriter/i.test(name))
-  return preferred || normalized[0]
+  const firstConnected = normalized.find((printer) => printer.isConnected !== false)
+  return firstConnected ? firstConnected.name : null
 }
 
 const classifyDymoError = (error, url) => {
@@ -60,52 +66,53 @@ const fetchWithTimeout = async (url, options = {}) => {
 
 export class DymoService {
   static async checkDymoStatus() {
-    const candidates = buildServiceCandidates()
-    let lastError = null
+    const printersUrl = DYMO_PRINTERS_URL
 
-    for (const baseUrl of candidates) {
-      const printersUrl = `${baseUrl}${DYMO_PATHS.printers}`
+    try {
+      const response = await fetchWithTimeout(printersUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        },
+        mode: 'cors',
+        credentials: 'omit'
+      })
 
-      try {
-        const response = await fetchWithTimeout(printersUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json'
-          },
-          mode: 'cors',
-          credentials: 'omit'
-        })
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            lastError = { type: 'not-found', status: response.status, url: printersUrl }
-            continue
+      if (!response.ok) {
+        if (response.status === 404) {
+          const notFound = { type: 'not-found', status: response.status, url: printersUrl }
+          return {
+            connected: false,
+            printers: [],
+            printerName: null,
+            message: 'DYMO niet beschikbaar',
+            errorType: notFound.type
           }
-          throw new Error(`DYMO Service niet bereikbaar: ${response.status}`)
         }
-
-        const data = await response.json().catch(() => null)
-        const printers = normalizePrinters(data)
-
-        return {
-          connected: true,
-          printers,
-          printerName: pickPrinterName(printers),
-          url: baseUrl,
-          message: 'DYMO verbonden'
-        }
-      } catch (error) {
-        lastError = { ...classifyDymoError(error, printersUrl), error }
+        throw new Error(`DYMO Service niet bereikbaar: ${response.status}`)
       }
-    }
 
-    console.error('DYMO Status Check Fout:', lastError?.error || lastError)
-    return {
-      connected: false,
-      printers: [],
-      printerName: null,
-      message: lastError?.message || 'DYMO niet beschikbaar',
-      errorType: lastError?.type || 'unreachable'
+      const data = await response.json().catch(() => null)
+      console.log('DYMO printers response:', data)
+      const printers = normalizePrinters(data)
+
+      return {
+        connected: true,
+        printers,
+        printerName: pickPrinterName(printers),
+        url: DYMO_SERVICE_URL,
+        message: 'DYMO verbonden'
+      }
+    } catch (error) {
+      const failure = { ...classifyDymoError(error, printersUrl), error }
+      console.error('DYMO Status Check Fout:', failure?.error || failure)
+      return {
+        connected: false,
+        printers: [],
+        printerName: null,
+        message: failure?.message || 'DYMO niet beschikbaar',
+        errorType: failure?.type || 'unreachable'
+      }
     }
   }
 

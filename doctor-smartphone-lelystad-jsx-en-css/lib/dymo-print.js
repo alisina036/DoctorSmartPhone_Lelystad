@@ -15,15 +15,12 @@ export const DYMO_PATHS = {
   printers: '/dcd/api/get-printers',
   print: '/dcd/api/print-label'
 }
+export const DYMO_SERVICE_URL = 'https://localhost:41951'
+export const DYMO_PRINTERS_URL = `${DYMO_SERVICE_URL}${DYMO_PATHS.printers}`
 export let DEBUG_MODE = true // Set to false voor production
 
 const buildServiceCandidates = () => {
-  const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:'
-  const protocols = isHttpsPage ? ['https'] : ['https', 'http']
-
-  return protocols.flatMap((protocol) =>
-    DYMO_PORTS.map((port) => `${protocol}://${DYMO_HOST}:${port}`)
-  )
+  return [DYMO_SERVICE_URL]
 }
 
 const normalizePrinters = (data) => {
@@ -36,13 +33,20 @@ const normalizePrinters = (data) => {
 
 const pickPrinterName = (printers) => {
   const normalized = printers
-    .map((printer) => (typeof printer === 'string' ? printer : printer.name))
-    .filter(Boolean)
+    .map((printer) => {
+      if (typeof printer === 'string') return { name: printer, isConnected: true }
+      if (!printer || typeof printer !== 'object') return null
+      return {
+        name: printer.name || printer.Name,
+        isConnected: typeof printer.isConnected === 'boolean' ? printer.isConnected : printer.IsConnected
+      }
+    })
+    .filter((printer) => printer && printer.name)
 
   if (!normalized.length) return null
 
-  const preferred = normalized.find((name) => /labelwriter/i.test(name))
-  return preferred || normalized[0]
+  const firstConnected = normalized.find((printer) => printer.isConnected !== false)
+  return firstConnected ? firstConnected.name : null
 }
 
 const classifyDymoError = (error, url) => {
@@ -58,38 +62,31 @@ const classifyDymoError = (error, url) => {
 }
 
 const checkDymoService = async () => {
-  const candidates = buildServiceCandidates()
-  let lastError = null
+  const printersUrl = DYMO_PRINTERS_URL
 
-  for (const baseUrl of candidates) {
-    const printersUrl = `${baseUrl}${DYMO_PATHS.printers}`
-
-    try {
-      const response = await fetch(printersUrl, { method: 'GET', mode: 'cors' })
-      if (!response.ok) {
-        if (response.status === 404) {
-          lastError = { type: 'not-found', status: response.status, url: printersUrl }
-          continue
-        }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+  try {
+    const response = await fetch(printersUrl, { method: 'GET', mode: 'cors' })
+    if (!response.ok) {
+      if (response.status === 404) {
+        return { available: false, error: { type: 'not-found', status: response.status, url: printersUrl } }
       }
-
-      const data = await response.json().catch(() => null)
-      const printers = normalizePrinters(data)
-      const printerName = pickPrinterName(printers)
-
-      return {
-        available: true,
-        url: baseUrl,
-        printers,
-        printerName
-      }
-    } catch (error) {
-      lastError = { ...classifyDymoError(error, printersUrl), error }
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
-  }
 
-  return { available: false, error: lastError }
+    const data = await response.json().catch(() => null)
+    console.log('DYMO printers response:', data)
+    const printers = normalizePrinters(data)
+    const printerName = pickPrinterName(printers)
+
+    return {
+      available: true,
+      url: DYMO_SERVICE_URL,
+      printers,
+      printerName
+    }
+  } catch (error) {
+    return { available: false, error: { ...classifyDymoError(error, printersUrl), error } }
+  }
 }
 
 /**
