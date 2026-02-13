@@ -89,7 +89,7 @@ function generateDymoXML(product) {
   })
   
   const xml = `<?xml version="1.0" encoding="utf-8"?>
-<DieCutLabel Version="8.0" Units="Twips">
+<DesktopLabel Version="8.0" Units="Twips" xmlns="http://www.dymo.com/namelight/tpe/v1">
   <PaperOrientation>Landscape</PaperOrientation>
   <Id>Address</Id>
   <IsOutlined>false</IsOutlined>
@@ -207,7 +207,7 @@ function generateDymoXML(product) {
       </ObjectLayout>
     </BarcodeObject>
   </ObjectInfo>
-</DieCutLabel>`
+</DesktopLabel>`
 
   return xml
 }

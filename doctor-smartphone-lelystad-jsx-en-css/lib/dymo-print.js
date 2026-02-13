@@ -103,7 +103,7 @@ export function generateLabelXml(productName, price, sku) {
   const formattedPrice = price.toFixed(2).replace('.', ',')
   
   const xml = `<?xml version="1.0" encoding="utf-8"?>
-<DieCutLabel Version="8.0" Units="Twips">
+<DesktopLabel Version="8.0" Units="Twips" xmlns="http://www.dymo.com/namelight/tpe/v1">
   <PaperOrientation>Landscape</PaperOrientation>
   <Id>Address</Id>
   <IsOutlined>false</IsOutlined>
@@ -213,7 +213,7 @@ export function generateLabelXml(productName, price, sku) {
       </ObjectLayout>
     </BarcodeObject>
   </ObjectInfo>
-</DieCutLabel>`
+</DesktopLabel>`
 
   return xml
 }
