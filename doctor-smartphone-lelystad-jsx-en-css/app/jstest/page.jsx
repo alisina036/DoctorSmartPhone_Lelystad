@@ -30,13 +30,13 @@ export default function JSTest() {
               overlay.style.alignItems = 'center';
               overlay.style.justifyContent = 'center';
               overlay.style.zIndex = '9999';
-              overlay.innerHTML = `
-                <div style="background:#fff;padding:20px;border-radius:10px;max-width:360px;width:90%;box-shadow:0 10px 30px rgba(0,0,0,0.2)">
-                  <h3 style="margin:0 0 8px;font-size:18px;">JavaScript werkt</h3>
-                  <p style="margin:0 0 16px;color:#444;">Button clicked! JavaScript works!</p>
-                  <button id="js-test-close" style="padding:8px 12px;background:#3ca0de;color:#fff;border:none;border-radius:6px;cursor:pointer;">Sluiten</button>
-                </div>
-              `;
+              overlay.innerHTML = [
+                '<div style="background:#fff;padding:20px;border-radius:10px;max-width:360px;width:90%;box-shadow:0 10px 30px rgba(0,0,0,0.2)">',
+                '  <h3 style="margin:0 0 8px;font-size:18px;">JavaScript werkt</h3>',
+                '  <p style="margin:0 0 16px;color:#444;">Button clicked! JavaScript works!</p>',
+                '  <button id="js-test-close" style="padding:8px 12px;background:#3ca0de;color:#fff;border:none;border-radius:6px;cursor:pointer;">Sluiten</button>',
+                '</div>'
+              ].join('\n');
               document.body.appendChild(overlay);
               document.getElementById('js-test-close').onclick = () => overlay.remove();
             }
