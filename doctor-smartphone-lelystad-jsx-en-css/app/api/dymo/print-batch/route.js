@@ -3,7 +3,7 @@ import DymoService from '@/lib/dymo-service'
 
 /**
  * POST /api/dymo/print-batch
- * Print meerdere product labels tegelijk via DYMO LabelWriter 550
+ * Print meerdere product labels tegelijk via DYMO LabelWriter 450
  */
 export async function POST(request) {
   try {

@@ -1,10 +1,10 @@
 'use client'
 
 /**
- * DYMO 550 Label Print Service
+ * DYMO 450 Label Print Service
  * 
  * Functionaliteit:
- * - Print labels naar DYMO 550 via localhost:41951
+ * - Print labels naar DYMO 450 via localhost:41951/41952
  * - Als verbinding faalt: toon XML in modal (thuis testen)
  * - Volledige debug logging in console
  * 
@@ -13,8 +13,65 @@
  * await printLabel({ name: 'iPhone 16 Plus Case', price: 29.99, sku: '123456' })
  */
 
-const DYMO_SERVICE_URL = 'https://localhost:41951/dymo/lblwriter/print'
+const DYMO_HOST = 'localhost'
+const DYMO_PORTS = [41951, 41952]
+const DYMO_PATHS = {
+  printers: '/dcd/api/get-printers',
+  print: '/dcd/api/print-label'
+}
 const DYMO_CHECK_TIMEOUT = 2000 // 2 seconden timeout
+
+const buildServiceCandidates = () => {
+  const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:'
+  const protocols = isHttpsPage ? ['https'] : ['https', 'http']
+
+  return protocols.flatMap((protocol) =>
+    DYMO_PORTS.map((port) => `${protocol}://${DYMO_HOST}:${port}`)
+  )
+}
+
+const normalizePrinters = (data) => {
+  if (!data) return []
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data.printers)) return data.printers
+  if (Array.isArray(data.Printers)) return data.Printers
+  return []
+}
+
+const pickPrinterName = (printers) => {
+  const normalized = printers
+    .map((printer) => (typeof printer === 'string' ? printer : printer.name))
+    .filter(Boolean)
+
+  if (!normalized.length) return null
+
+  const preferred = normalized.find((name) => /labelwriter/i.test(name))
+  return preferred || normalized[0]
+}
+
+const classifyDymoError = (error, url) => {
+  const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:'
+  const isHttpTarget = typeof url === 'string' && url.startsWith('http://')
+  const isTypeError = error && error.name === 'TypeError'
+
+  if (isHttpsPage && (isHttpTarget || isTypeError)) {
+    return { type: 'security', message: 'HTTPS beveiliging blokkeert toegang tot de DYMO service.' }
+  }
+
+  return { type: 'unreachable', message: 'DYMO service niet bereikbaar of printer niet aangesloten.' }
+}
+
+const fetchWithTimeout = async (url, options = {}) => {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), DYMO_CHECK_TIMEOUT)
+
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal })
+    return response
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
 
 /**
  * Generate XML voor DYMO 11354 label (54mm x 101mm)
@@ -388,26 +445,51 @@ function showXMLModal(xml, product) {
 /**
  * Check of DYMO Web Service beschikbaar is
  */
-async function isDymoServiceAvailable() {
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), DYMO_CHECK_TIMEOUT)
+async function checkDymoService() {
+  const candidates = buildServiceCandidates()
+  let lastError = null
 
-    const response = await fetch(DYMO_SERVICE_URL, {
-      method: 'OPTIONS',
-      signal: controller.signal,
-      mode: 'cors'
-    })
+  for (const baseUrl of candidates) {
+    const printersUrl = `${baseUrl}${DYMO_PATHS.printers}`
 
-    clearTimeout(timeoutId)
-    return response.ok || response.status === 405 // 405 = Method not allowed maar service draait
-  } catch (error) {
-    return false
+    try {
+      const response = await fetchWithTimeout(printersUrl, {
+        method: 'GET',
+        mode: 'cors'
+      })
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          lastError = { type: 'not-found', status: response.status, url: printersUrl }
+          continue
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const data = await response.json().catch(() => null)
+      const printers = normalizePrinters(data)
+      const printerName = pickPrinterName(printers)
+
+      return {
+        available: true,
+        url: baseUrl,
+        printers,
+        printerName
+      }
+    } catch (error) {
+      const classification = classifyDymoError(error, printersUrl)
+      lastError = { ...classification, error, url: printersUrl }
+    }
+  }
+
+  return {
+    available: false,
+    error: lastError
   }
 }
 
 /**
- * Print Label naar DYMO 550
+ * Print Label naar DYMO 450
  * 
  * Als printer niet beschikbaar: toon XML in modal
  * 
@@ -447,16 +529,26 @@ export async function printLabel(product) {
 
   // Check DYMO service
   console.log('%c🔍 Checking DYMO Service...', 'color: #00BCD4; font-weight: bold;')
-  const serviceAvailable = await isDymoServiceAvailable()
-  console.log('  Service URL:', DYMO_SERVICE_URL)
-  console.log('  Available:', serviceAvailable ? '✅ Yes' : '❌ No')
+  const serviceStatus = await checkDymoService()
+  console.log('  Available:', serviceStatus.available ? '✅ Yes' : '❌ No')
+  if (serviceStatus.available) {
+    console.log('  Service URL:', serviceStatus.url)
+    console.log('  Printer:', serviceStatus.printerName || 'Geen printer gevonden')
+  }
 
-  if (!serviceAvailable) {
+  if (!serviceStatus.available) {
+    const errorType = serviceStatus.error?.type
+    if (errorType === 'security') {
+      console.error('❌ HTTPS beveiligingsblokkade: browser blokkeert toegang tot DYMO (mixed content of certificaat).')
+    } else {
+      console.error('❌ DYMO printer niet aangesloten of service draait niet op poort 41951/41952.')
+    }
+
     console.warn('%c⚠️  DYMO Service Niet Beschikbaar', 'color: orange; font-weight: bold; font-size: 13px;')
     console.log('  Mogelijke oorzaken:')
     console.log('    • DYMO Connect software niet geïnstalleerd')
-    console.log('    • DYMO 550 printer niet aangesloten')
-    console.log('    • Web Service draait niet op poort 41951')
+    console.log('    • DYMO LabelWriter 450 printer niet aangesloten')
+    console.log('    • Web Service draait niet op poort 41951/41952')
     console.log('    • Je bent thuis zonder printer (expected!)')
     console.log('')
     console.log('%c💡 DEBUG MODE: XML wordt getoond in modal', 'background: #FFC107; color: black; padding: 6px 12px; border-radius: 4px; font-weight: bold;')
@@ -471,7 +563,8 @@ export async function printLabel(product) {
       success: false,
       message: 'Printer niet beschikbaar - XML getoond in modal',
       xml,
-      debugMode: true
+      debugMode: true,
+      errorType: errorType || 'unreachable'
     }
   }
 
@@ -479,13 +572,18 @@ export async function printLabel(product) {
   try {
     console.log('%c📡 Sending POST Request...', 'color: #4CAF50; font-weight: bold;')
     
-    const response = await fetch(DYMO_SERVICE_URL, {
+    const response = await fetch(`${serviceStatus.url}${DYMO_PATHS.print}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/xml',
+        'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: xml,
+      body: JSON.stringify({
+        printerName: serviceStatus.printerName,
+        labelXml: xml,
+        printParams: '',
+        labelSetXml: ''
+      }),
       mode: 'cors'
     })
 
@@ -516,11 +614,19 @@ export async function printLabel(product) {
       showXMLModal(xml, product)
     }
 
+    const classification = classifyDymoError(error, `${serviceStatus.url}${DYMO_PATHS.print}`)
+    if (classification.type === 'security') {
+      console.error('❌ HTTPS beveiligingsblokkade: browser blokkeert toegang tot DYMO (mixed content of certificaat).')
+    } else {
+      console.error('❌ DYMO printer niet aangesloten of service draait niet op poort 41951/41952.')
+    }
+
     return {
       success: false,
       message: `Print error: ${error.message}`,
       xml,
-      error: error.message
+      error: error.message,
+      errorType: classification.type
     }
   }
 }
@@ -541,13 +647,19 @@ export async function testPrint() {
  */
 export async function checkDymoStatus() {
   console.log('🔍 Checking DYMO Service Status...')
-  const available = await isDymoServiceAvailable()
-  
-  if (available) {
-    console.log('✅ DYMO Service is beschikbaar op', DYMO_SERVICE_URL)
+  const status = await checkDymoService()
+
+  if (status.available) {
+    console.log('✅ DYMO Service is beschikbaar op', status.url)
   } else {
     console.warn('❌ DYMO Service niet bereikbaar')
   }
 
-  return { available, url: DYMO_SERVICE_URL }
+  return {
+    available: status.available,
+    url: status.url,
+    printers: status.printers || [],
+    printerName: status.printerName || null,
+    errorType: status.error?.type || null
+  }
 }

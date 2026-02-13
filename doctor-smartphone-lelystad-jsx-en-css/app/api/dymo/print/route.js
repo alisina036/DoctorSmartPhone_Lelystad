@@ -3,7 +3,7 @@ import DymoService from '@/lib/dymo-service'
 
 /**
  * POST /api/dymo/print
- * Print een product label via DYMO LabelWriter 550
+ * Print een product label via DYMO LabelWriter 450
  */
 export async function POST(request) {
   try {

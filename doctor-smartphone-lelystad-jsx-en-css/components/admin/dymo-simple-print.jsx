@@ -95,7 +95,7 @@ export default function DymoPrintComponent() {
           DYMO Label Printer
         </CardTitle>
         <CardDescription>
-          Print labels naar DYMO 550. Zonder printer? XML verschijnt in modal!
+          Print labels naar DYMO 450. Zonder printer? XML verschijnt in modal!
         </CardDescription>
       </CardHeader>
       <CardContent>

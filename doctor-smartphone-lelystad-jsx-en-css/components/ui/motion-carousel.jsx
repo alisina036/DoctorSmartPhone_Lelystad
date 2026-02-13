@@ -21,7 +21,9 @@ function CarouselItem({ item, index, itemWidth, round, trackItemOffset, x, trans
       className={`carousel-item ${round ? 'round' : ''}`}
       style={{
         width: itemWidth,
-        rotateY: rotateY
+        height: round ? itemWidth : '100%',
+        rotateY: rotateY,
+        ...(round && { borderRadius: '50%' })
       }}
       transition={transition}
     >
@@ -199,7 +201,8 @@ export default function MotionCarousel({
       ref={containerRef}
       className={`carousel-container ${round ? 'round' : ''}`}
       style={{
-        width: `${baseWidth}px`
+        width: `${baseWidth}px`,
+        ...(round && { height: `${baseWidth}px`, borderRadius: '50%' })
       }}
     >
       <motion.div

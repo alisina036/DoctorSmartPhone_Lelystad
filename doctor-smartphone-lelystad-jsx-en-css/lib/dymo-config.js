@@ -6,7 +6,7 @@
 export const DYMO_CONFIG = {
   // Printer Instellingen
   printer: {
-    model: 'DYMO LabelWriter 550',
+    model: 'DYMO LabelWriter 450',
     mediaSize: '4x6',  // 4x6 inches
     orientation: 'Landscape',
     resolution: 300,   // DPI
@@ -15,8 +15,8 @@ export const DYMO_CONFIG = {
   // Web Service
   service: {
     host: 'localhost',
-    port: 41951,
-    protocol: 'http',  // 'http' voor localhost, 'https' voor productie
+    ports: [41951, 41952],
+    protocol: 'https',  // 'https' aanbevolen (Netlify/HTTPS)
     timeout: 5000,     // milliseconds
   },
 
@@ -191,13 +191,13 @@ export const KASSA_CONFIG = {
  */
 export const ERROR_MESSAGES = {
   DYMO_NOT_CONNECTED: 'DYMO printer niet verbonden. Start DYMO Connect en controleer USB verbinding.',
-  DYMO_SERVICE_UNAVAILABLE: 'DYMO Web Service niet bereikbaar op poort 41951.',
+  DYMO_SERVICE_UNAVAILABLE: 'DYMO Web Service niet bereikbaar op poort 41951/41952.',
   INVALID_BARCODE: 'Barcode bevat ongeldige karakters.',
   BARCODE_TOO_SHORT: 'Barcode moet minstens 3 karakters lang zijn.',
   MISSING_PRODUCT_DATA: 'Ontbrekende productgegevens.',
   PRINT_FAILED: 'Labeling mislukt. Controleer printer en probeer opnieuw.',
   PRINTER_ERROR: 'Printer fout. Controleer papier/labels en poging opnieuw.',
-  CORS_ERROR: 'CORS fout bij verbinding met DYMO. Mogelijk HTTPS issue.',
+  CORS_ERROR: 'CORS/HTTPS blokkade bij verbinding met DYMO. Controleer certificaat en CORS.',
   TIMEOUT: 'DYMO service timeout. Controleer netwerk verbinding.',
 }
 
@@ -206,7 +206,7 @@ export const ERROR_MESSAGES = {
  */
 export const SUCCESS_MESSAGES = {
   LABEL_PRINTED: '{count} label(s) naar DYMO verzonden.',
-  PRINTER_CONNECTED: 'DYMO LabelWriter 550 verbonden.',
+  PRINTER_CONNECTED: 'DYMO LabelWriter 450 verbonden.',
   TEST_SUCCESSFUL: 'Test label succesvol geprint.',
   BATCH_COMPLETE: '{count} prints voltooid.',
 }
@@ -216,7 +216,8 @@ export const SUCCESS_MESSAGES = {
  */
 export const getDymoServiceUrl = () => {
   const { service } = DYMO_CONFIG
-  return `${service.protocol}://${service.host}:${service.port}`
+  const port = service.ports && service.ports.length ? service.ports[0] : 41951
+  return `${service.protocol}://${service.host}:${port}`
 }
 
 export const getBarcodeFontSize = () => {

@@ -101,7 +101,7 @@ export function DymoTestPage() {
     <div className="space-y-6 p-6 max-w-6xl mx-auto">
       <div>
         <h1 className="text-4xl font-bold mb-2">DYMO Test & Demo</h1>
-        <p className="text-gray-600">Test DYMO LabelWriter 550 verbinding en label printing</p>
+        <p className="text-gray-600">Test DYMO LabelWriter 450 verbinding en label printing</p>
       </div>
 
       {/* DYMO Status */}

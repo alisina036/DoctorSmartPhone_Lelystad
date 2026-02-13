@@ -194,7 +194,7 @@ export function DymoStatusCard() {
           DYMO Status
         </CardTitle>
         <CardDescription>
-          LabelWriter 550 Printer
+          LabelWriter 450 Printer
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -235,9 +235,9 @@ export function DymoStatusCard() {
                 Probleemoplosser:
               </p>
               <ol className="text-xs text-red-700 list-decimal list-inside space-y-1">
-                <li>Zorg dat DYMO LabelWriter 550 aangesloten is</li>
+                <li>Zorg dat DYMO LabelWriter 450 aangesloten is</li>
                 <li>Start DYMO Connect software</li>
-                <li>Web Service moet draaien op poort 41951</li>
+                <li>Web Service moet draaien op poort 41951/41952</li>
                 <li>Vernieuw de pagina</li>
               </ol>
             </div>

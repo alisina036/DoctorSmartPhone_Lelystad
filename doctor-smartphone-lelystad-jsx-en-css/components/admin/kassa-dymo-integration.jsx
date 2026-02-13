@@ -250,7 +250,7 @@ export function KassaDymoIntegration({ products = [] }) {
         </CardHeader>
         <CardContent className="text-sm text-gray-600 space-y-2">
           <p>
-            <strong>1. DYMO Verbinding:</strong> De DYMO LabelWriter 550 moet aangesloten zijn en DYMO Connect moet draaien.
+            <strong>1. DYMO Verbinding:</strong> De DYMO LabelWriter 450 moet aangesloten zijn en DYMO Connect moet draaien.
           </p>
           <p>
             <strong>2. Scannen:</strong> Scan barcodes met je scanner. Producten worden automatisch aan de kar toegevoegd.

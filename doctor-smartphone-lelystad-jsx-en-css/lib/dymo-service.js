@@ -1,40 +1,111 @@
 /**
- * DYMO LabelWriter 550 Integratie Service
+ * DYMO LabelWriter 450 Integratie Service
  * Verbinding met DYMO Web Service op poort 41951
  */
 
-const DYMO_SERVICE_URL = 'http://localhost:41951/DYMO/DymoAddIn/Service.asmx'
-const DYMO_PRINT_SERVER_URL = 'http://localhost:41951/api/v1'
+const DYMO_HOST = 'localhost'
+const DYMO_PORTS = [41951, 41952]
+const DYMO_PATHS = {
+  printers: '/dcd/api/get-printers',
+  print: '/dcd/api/print-label'
+}
+const DYMO_CHECK_TIMEOUT = 2000
+const DYMO_CLASSIC_SERVICE_URL = 'http://localhost:41951/DYMO/DymoAddIn/Service.asmx'
+
+const buildServiceCandidates = () => {
+  const protocols = ['https', 'http']
+  return protocols.flatMap((protocol) =>
+    DYMO_PORTS.map((port) => `${protocol}://${DYMO_HOST}:${port}`)
+  )
+}
+
+const normalizePrinters = (data) => {
+  if (!data) return []
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data.printers)) return data.printers
+  if (Array.isArray(data.Printers)) return data.Printers
+  return []
+}
+
+const pickPrinterName = (printers) => {
+  const normalized = printers
+    .map((printer) => (typeof printer === 'string' ? printer : printer.name))
+    .filter(Boolean)
+
+  if (!normalized.length) return null
+
+  const preferred = normalized.find((name) => /labelwriter/i.test(name))
+  return preferred || normalized[0]
+}
+
+const classifyDymoError = (error, url) => {
+  const isTypeError = error && error.name === 'TypeError'
+  if (isTypeError && typeof url === 'string' && url.startsWith('http://')) {
+    return { type: 'security', message: 'HTTPS beveiliging blokkeert toegang tot de DYMO service.' }
+  }
+  return { type: 'unreachable', message: 'DYMO service niet bereikbaar of printer niet aangesloten.' }
+}
+
+const fetchWithTimeout = async (url, options = {}) => {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), DYMO_CHECK_TIMEOUT)
+
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal })
+    return response
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
 
 export class DymoService {
   static async checkDymoStatus() {
-    try {
-      const response = await fetch(`${DYMO_PRINT_SERVER_URL}/printers`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        mode: 'cors',
-        credentials: 'omit'
-      })
+    const candidates = buildServiceCandidates()
+    let lastError = null
 
-      if (!response.ok) {
-        throw new Error(`DYMO Service niet bereikbaar: ${response.status}`)
-      }
+    for (const baseUrl of candidates) {
+      const printersUrl = `${baseUrl}${DYMO_PATHS.printers}`
 
-      const data = await response.json()
-      return {
-        connected: true,
-        printers: data || [],
-        message: 'DYMO verbonden'
+      try {
+        const response = await fetchWithTimeout(printersUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          },
+          mode: 'cors',
+          credentials: 'omit'
+        })
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            lastError = { type: 'not-found', status: response.status, url: printersUrl }
+            continue
+          }
+          throw new Error(`DYMO Service niet bereikbaar: ${response.status}`)
+        }
+
+        const data = await response.json().catch(() => null)
+        const printers = normalizePrinters(data)
+
+        return {
+          connected: true,
+          printers,
+          printerName: pickPrinterName(printers),
+          url: baseUrl,
+          message: 'DYMO verbonden'
+        }
+      } catch (error) {
+        lastError = { ...classifyDymoError(error, printersUrl), error }
       }
-    } catch (error) {
-      console.error('DYMO Status Check Fout:', error)
-      return {
-        connected: false,
-        printers: [],
-        message: `DYMO niet beschikbaar: ${error.message}`
-      }
+    }
+
+    console.error('DYMO Status Check Fout:', lastError?.error || lastError)
+    return {
+      connected: false,
+      printers: [],
+      printerName: null,
+      message: lastError?.message || 'DYMO niet beschikbaar',
+      errorType: lastError?.type || 'unreachable'
     }
   }
 
@@ -55,7 +126,7 @@ export class DymoService {
 
       return {
         success: true,
-        message: `${quantity} label(s) naar DYMO 550 verzonden`,
+        message: `${quantity} label(s) naar DYMO 450 verzonden`,
         quantity: quantity
       }
     } catch (error) {
@@ -71,137 +142,151 @@ export class DymoService {
   static generateLabelXml(productData) {
     const { name, price, barcode, sku } = productData
 
-    // DYMO Label XML Template (4x6 label standaard)
-    // Dit is een basis template - je moet deze aanpassen op basis van je DYMO label design
+    // DYMO Label XML Template (LabelWriter 450 compatible)
     const xml = `<?xml version="1.0" encoding="utf-8"?>
 <DieCutLabel Version="8.0" Units="Twips">
-  <PreviewUsed>false</PreviewUsed>
-  <Date>2026-02-01</Date>
-  <Time>12:00:00</Time>
-  <PatternName></PatternName>
-  <ContentSource>Memory</ContentSource>
-  <PrinterName>DYMO LabelWriter 550</PrinterName>
-  <Orientation>Landscape</Orientation>
-  <ShowBarcodeFor_XObjects>false</ShowBarcodeFor_XObjects>
-  <ZoomPercentage>100</ZoomPercentage>
-  <CreatedDocVersion>8.0</CreatedDocVersion>
-  <ViewMode>person</ViewMode>
-  <Id>Sample1</Id>
-  <PaperName>4x6</PaperName>
+  <PaperOrientation>Landscape</PaperOrientation>
+  <Id>Address</Id>
+  <IsOutlined>false</IsOutlined>
+  <PaperName>11354 Multi-Purpose</PaperName>
   <DrawCommands>
-    <RoundRectangle X="0" Y="0" Width="5760" Height="8640" Rx="270" Ry="270"/>
+    <RoundRectangle X="0" Y="0" Width="3150" Height="1800" Rx="270" Ry="270"/>
   </DrawCommands>
   <ObjectInfo>
     <TextObject>
       <Name>ProductName</Name>
       <ForeColor Alpha="255" Red="0" Green="0" Blue="0"/>
       <BackColor Alpha="0" Red="255" Green="255" Blue="255"/>
-      <LinkedObjectName></LinkedObjectName>
       <Rotation>Rotation0</Rotation>
       <IsMirrored>false</IsMirrored>
       <IsVariable>false</IsVariable>
-      <GroupID></GroupID>
+      <GroupID>-1</GroupID>
       <IsOutlined>false</IsOutlined>
-      <Text>${this.escapeXml(name.substring(0, 40))}</Text>
-      <ItemData>
-        <Charset>UTF-8</Charset>
-        <x>200</x>
-        <y>200</y>
-        <width>5360</width>
-        <height>1000</height>
-        <bold>true</bold>
-        <italic>false</italic>
-        <underline>false</underline>
-        <strikethrough>false</strikethrough>
-        <fontname>Arial</fontname>
-        <fontsize>14</fontsize>
-        <rotation>Rotation0</rotation>
-        <alignment>Center</alignment>
-        <lineSpacing>0</lineSpacing>
-        <trimTrailingSpaces>true</trimTrailingSpaces>
-        <wordWrap>true</wordWrap>
-      </ItemData>
+      <HorizontalAlignment>Left</HorizontalAlignment>
+      <VerticalAlignment>Top</VerticalAlignment>
+      <TextFitMode>ShrinkToFit</TextFitMode>
+      <UseFullFontHeight>true</UseFullFontHeight>
+      <Verticalized>false</Verticalized>
+      <StyledText>
+        <Element>
+          <String>${this.escapeXml(name.substring(0, 40))}</String>
+          <Attributes>
+            <Font Family="Arial" Size="10" Bold="false" Italic="false" Underline="false" Strikeout="false"/>
+            <ForeColor Alpha="255" Red="0" Green="0" Blue="0"/>
+          </Attributes>
+        </Element>
+      </StyledText>
+      <ShowBarcodeFor2DSymbol>false</ShowBarcodeFor2DSymbol>
+      <ObjectLayout>
+        <DYMOPoint>
+          <X>100</X>
+          <Y>100</Y>
+        </DYMOPoint>
+        <Size>
+          <Width>2900</Width>
+          <Height>350</Height>
+        </Size>
+      </ObjectLayout>
     </TextObject>
     <TextObject>
       <Name>Price</Name>
       <ForeColor Alpha="255" Red="0" Green="0" Blue="0"/>
       <BackColor Alpha="0" Red="255" Green="255" Blue="255"/>
-      <LinkedObjectName></LinkedObjectName>
       <Rotation>Rotation0</Rotation>
       <IsMirrored>false</IsMirrored>
       <IsVariable>false</IsVariable>
-      <GroupID></GroupID>
+      <GroupID>-1</GroupID>
       <IsOutlined>false</IsOutlined>
-      <Text>€ ${this.formatPrice(price)}</Text>
-      <ItemData>
-        <Charset>UTF-8</Charset>
-        <x>200</x>
-        <y>1300</y>
-        <width>5360</width>
-        <height>600</height>
-        <bold>true</bold>
-        <italic>false</italic>
-        <underline>false</underline>
-        <strikethrough>false</strikethrough>
-        <fontname>Arial</fontname>
-        <fontsize>16</fontsize>
-        <rotation>Rotation0</rotation>
-        <alignment>Center</alignment>
-        <lineSpacing>0</lineSpacing>
-        <trimTrailingSpaces>true</trimTrailingSpaces>
-        <wordWrap>false</wordWrap>
-      </ItemData>
+      <HorizontalAlignment>Center</HorizontalAlignment>
+      <VerticalAlignment>Middle</VerticalAlignment>
+      <TextFitMode>ShrinkToFit</TextFitMode>
+      <UseFullFontHeight>true</UseFullFontHeight>
+      <Verticalized>false</Verticalized>
+      <StyledText>
+        <Element>
+          <String>€ ${this.formatPrice(price)}</String>
+          <Attributes>
+            <Font Family="Arial" Size="14" Bold="true" Italic="false" Underline="false" Strikeout="false"/>
+            <ForeColor Alpha="255" Red="0" Green="0" Blue="0"/>
+          </Attributes>
+        </Element>
+      </StyledText>
+      <ShowBarcodeFor2DSymbol>false</ShowBarcodeFor2DSymbol>
+      <ObjectLayout>
+        <DYMOPoint>
+          <X>100</X>
+          <Y>500</Y>
+        </DYMOPoint>
+        <Size>
+          <Width>2900</Width>
+          <Height>400</Height>
+        </Size>
+      </ObjectLayout>
     </TextObject>
     <BarcodeObject>
       <Name>Barcode</Name>
       <ForeColor Alpha="255" Red="0" Green="0" Blue="0"/>
       <BackColor Alpha="0" Red="255" Green="255" Blue="255"/>
-      <LinkedObjectName></LinkedObjectName>
       <Rotation>Rotation0</Rotation>
       <IsMirrored>false</IsMirrored>
       <IsVariable>false</IsVariable>
-      <GroupID></GroupID>
+      <GroupID>-1</GroupID>
       <IsOutlined>false</IsOutlined>
       <Text>${barcode}</Text>
-      <BarcodeType>Code128</BarcodeType>
-      <ItemData>
-        <Charset>UTF-8</Charset>
-        <x>300</x>
-        <y>2100</y>
-        <width>5160</width>
-        <height>900</height>
-        <showText>true</showText>
-      </ItemData>
+      <Type>Code128Auto</Type>
+      <Size>Small</Size>
+      <TextPosition>Bottom</TextPosition>
+      <TextFont Family="Arial" Size="8" Bold="false" Italic="false" Underline="false" Strikeout="false"/>
+      <CheckSumFont Family="Arial" Size="8" Bold="false" Italic="false" Underline="false" Strikeout="false"/>
+      <TextEmbedding>None</TextEmbedding>
+      <ECLevel>0</ECLevel>
+      <HorizontalAlignment>Center</HorizontalAlignment>
+      <QuietZonesPadding Left="0" Right="0" Top="0" Bottom="0"/>
+      <ObjectLayout>
+        <DYMOPoint>
+          <X>200</X>
+          <Y>950</Y>
+        </DYMOPoint>
+        <Size>
+          <Width>2700</Width>
+          <Height>550</Height>
+        </Size>
+      </ObjectLayout>
     </BarcodeObject>
     <TextObject>
       <Name>SKU</Name>
       <ForeColor Alpha="255" Red="128" Green="128" Blue="128"/>
       <BackColor Alpha="0" Red="255" Green="255" Blue="255"/>
-      <LinkedObjectName></LinkedObjectName>
       <Rotation>Rotation0</Rotation>
       <IsMirrored>false</IsMirrored>
       <IsVariable>false</IsVariable>
-      <GroupID></GroupID>
+      <GroupID>-1</GroupID>
       <IsOutlined>false</IsOutlined>
-      <Text>SKU: ${sku || barcode}</Text>
-      <ItemData>
-        <Charset>UTF-8</Charset>
-        <x>200</x>
-        <y>3100</y>
-        <width>5360</width>
-        <height>400</height>
-        <bold>false</bold>
-        <italic>false</italic>
-        <underline>false</underline>
-        <strikethrough>false</strikethrough>
-        <fontname>Arial</fontname>
-        <fontsize>8</fontsize>
-        <rotation>Rotation0</rotation>
-        <alignment>Center</alignment>
-        <lineSpacing>0</lineSpacing>
-        <trimTrailingSpaces>true</trimTrailingSpaces>
-        <wordWrap>false</wordWrap>
-      </ItemData>
+      <HorizontalAlignment>Center</HorizontalAlignment>
+      <VerticalAlignment>Bottom</VerticalAlignment>
+      <TextFitMode>ShrinkToFit</TextFitMode>
+      <UseFullFontHeight>true</UseFullFontHeight>
+      <Verticalized>false</Verticalized>
+      <StyledText>
+        <Element>
+          <String>SKU: ${this.escapeXml(sku || barcode)}</String>
+          <Attributes>
+            <Font Family="Arial" Size="7" Bold="false" Italic="false" Underline="false" Strikeout="false"/>
+            <ForeColor Alpha="255" Red="128" Green="128" Blue="128"/>
+          </Attributes>
+        </Element>
+      </StyledText>
+      <ShowBarcodeFor2DSymbol>false</ShowBarcodeFor2DSymbol>
+      <ObjectLayout>
+        <DYMOPoint>
+          <X>100</X>
+          <Y>1500</Y>
+        </DYMOPoint>
+        <Size>
+          <Width>2900</Width>
+          <Height>220</Height>
+        </Size>
+      </ObjectLayout>
     </TextObject>
   </ObjectInfo>
 </DieCutLabel>`
@@ -211,19 +296,29 @@ export class DymoService {
 
   static async sendToDymoPrintServer(labelXml) {
     try {
-      // Create label in DYMO
-      const response = await fetch(`${DYMO_PRINT_SERVER_URL}/print`, {
+      const status = await this.checkDymoStatus()
+      if (!status.connected) {
+        throw new Error(status.message || 'DYMO service niet bereikbaar')
+      }
+
+      const printerName = status.printerName || (status.printers?.[0]?.name || status.printers?.[0])
+      if (!printerName) {
+        throw new Error('Geen DYMO printer gevonden')
+      }
+
+      const response = await fetch(`${status.url}${DYMO_PATHS.print}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          'Accept': 'application/json'
         },
         mode: 'cors',
         credentials: 'omit',
         body: JSON.stringify({
-          printerId: 'dymo-labelwriter-550',
+          printerName: printerName,
           labelXml: labelXml,
-          quantity: 1
+          printParams: '',
+          labelSetXml: ''
         })
       })
 
@@ -233,6 +328,13 @@ export class DymoService {
 
       return await response.json()
     } catch (error) {
+      const classification = classifyDymoError(error, DYMO_PATHS.print)
+      if (classification.type === 'security') {
+        console.error('❌ HTTPS beveiligingsblokkade: browser blokkeert toegang tot DYMO (mixed content of certificaat).')
+      } else {
+        console.error('❌ DYMO printer niet aangesloten of service draait niet op poort 41951/41952.')
+      }
+
       // Fallback: probeer de klassieke DYMO SDK via SOAP
       return await this.sendViaClassicDymoSdk(labelXml)
     }
@@ -250,7 +352,7 @@ export class DymoService {
   </soap:Body>
 </soap:Envelope>`
 
-      const response = await fetch(DYMO_SERVICE_URL, {
+      const response = await fetch(DYMO_CLASSIC_SERVICE_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'text/xml',
