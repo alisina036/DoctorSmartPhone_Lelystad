@@ -1,95 +1,87 @@
-import { NextRequest, NextResponse } from 'next/server'
-import DymoService from '@/lib/dymo-service'
+import { NextResponse } from 'next/server'
 
-/**
- * POST /api/dymo/print-batch
- * Print meerdere product labels tegelijk via DYMO LabelWriter 450
- */
+const PROXY_URL = 'http://127.0.0.1:3000/api/admin/dymo/python-native-proxy'
+
 export async function POST(request) {
   try {
     const body = await request.json()
-    const { items = [] } = body
+    const items = Array.isArray(body?.items) ? body.items : []
 
-    if (!Array.isArray(items) || items.length === 0) {
+    if (!items.length) {
       return NextResponse.json(
-        { error: 'Geen items om te printen' },
+        {
+          success: false,
+          error: 'Geen items om te printen',
+        },
         { status: 400 }
       )
     }
 
-    // Valideer alle items
-    const validationErrors = []
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i]
-      if (!item.productData) {
-        validationErrors.push(`Item ${i + 1}: Productgegevens ontbreken`)
+    const results = []
+
+    for (const item of items) {
+      const productData = item?.productData || {}
+      const quantity = Math.max(1, Number(item?.quantity || 1))
+      const productName = String(productData?.name ?? '').trim()
+      const priceValue = productData?.price
+      const sku = String(productData?.sku ?? productData?.barcode ?? '').trim()
+
+      if (!productName || priceValue == null || !sku) {
+        results.push({
+          productName: productName || 'Onbekend',
+          success: false,
+          quantity,
+          error: 'productName, price en sku zijn verplicht',
+        })
         continue
       }
 
-      const barcodeValidation = DymoService.validateBarcode(item.productData.barcode)
-      if (!barcodeValidation.valid) {
-        validationErrors.push(`Item ${i + 1} (${item.productData.name}): ${barcodeValidation.error}`)
-      }
-    }
+      const price = typeof priceValue === 'number' ? priceValue.toFixed(2).replace('.', ',') : String(priceValue)
 
-    if (validationErrors.length > 0) {
-      return NextResponse.json(
-        { error: validationErrors.join('; ') },
-        { status: 400 }
-      )
-    }
+      let itemSuccess = true
+      let itemError = null
 
-    // Print alle items
-    const results = []
-    let totalPrinted = 0
-
-    for (const item of items) {
-      try {
-        const result = await DymoService.printLabel(
-          item.productData,
-          item.quantity || 1
-        )
-        
-        if (result.success) {
-          totalPrinted += (item.quantity || 1)
-          results.push({
-            productName: item.productData.name,
-            success: true,
-            quantity: item.quantity || 1
-          })
-        } else {
-          results.push({
-            productName: item.productData.name,
-            success: false,
-            error: result.message
-          })
-        }
-      } catch (error) {
-        results.push({
-          productName: item.productData.name,
-          success: false,
-          error: error.message
+      for (let i = 0; i < quantity; i += 1) {
+        const proxyResponse = await fetch(PROXY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productName, price, sku }),
+          cache: 'no-store',
         })
+
+        const proxyData = await proxyResponse.json().catch(() => ({}))
+
+        if (!(proxyResponse.ok && proxyData?.success)) {
+          itemSuccess = false
+          itemError = proxyData?.error || `Print mislukt (HTTP ${proxyResponse.status})`
+          break
+        }
       }
+
+      results.push({
+        productName,
+        success: itemSuccess,
+        quantity,
+        error: itemError,
+      })
     }
 
-    const successCount = results.filter(r => r.success).length
-    const failureCount = results.filter(r => !r.success).length
+    const successCount = results.filter((r) => r.success).length
+    const failureCount = results.length - successCount
 
     return NextResponse.json({
       success: failureCount === 0,
-      totalPrinted,
-      processed: items.length,
+      processed: results.length,
       successCount,
       failureCount,
       results,
-      message: `${successCount} van ${items.length} prints voltooid${failureCount > 0 ? `, ${failureCount} mislukt` : ''}`
     })
-
   } catch (error) {
-    console.error('DYMO Batch Print Error:', error)
     return NextResponse.json(
-      { error: error.message || 'Fout bij batch printen' },
+      {
+        success: false,
+        error: error?.message || 'Fout bij batch printen',
+      },
       { status: 500 }
     )
   }

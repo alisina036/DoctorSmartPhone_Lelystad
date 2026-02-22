@@ -1,0 +1,86 @@
+iPhone 17 Pro - clear case
+Prijs: € 10,00
+SKU: PRD000002
+Barcode: PRD000002
+
+[XML Backup]
+<?xml version="1.0" encoding="utf-8"?>
+<DieCutLabel Version="8.0" xmlns="http://www.dymo.com/zeus/Community/DieCutLabel.xsd">
+  <PaperOrientation>Landscape</PaperOrientation>
+  <Id>Address</Id>
+  <PaperName>11354 Multi-Purpose</PaperName>
+  <DrawCommands>
+    <RoundRectangle X="0" Y="0" Width="3150" Height="1800" Rx="180" Ry="180" />
+  </DrawCommands>
+  <ObjectInfo>
+    <TextObject>
+      <Name>ProductName</Name>
+      <StyledText>
+        <Element>
+          <String>iPhone 17 Pro - clear case</String>
+          <Attributes>
+            <Font Family="Arial" Size="10" Bold="False" Italic="False" Underline="False" Strikeout="False" />
+            <ForeColor Alpha="255" Red="0" Green="0" Blue="0" />
+          </Attributes>
+        </Element>
+      </StyledText>
+      <HorizontalAlignment>Left</HorizontalAlignment>
+      <VerticalAlignment>Top</VerticalAlignment>
+      <ObjectLayout>
+        <DYMOPoint><X>120</X><Y>120</Y></DYMOPoint>
+        <Size><Width>2900</Width><Height>420</Height></Size>
+      </ObjectLayout>
+    </TextObject>
+
+    <TextObject>
+      <Name>Price</Name>
+      <StyledText>
+        <Element>
+          <String>€ 10,00</String>
+          <Attributes>
+            <Font Family="Arial" Size="15" Bold="True" Italic="False" Underline="False" Strikeout="False" />
+            <ForeColor Alpha="255" Red="0" Green="0" Blue="0" />
+          </Attributes>
+        </Element>
+      </StyledText>
+      <HorizontalAlignment>Center</HorizontalAlignment>
+      <VerticalAlignment>Middle</VerticalAlignment>
+      <ObjectLayout>
+        <DYMOPoint><X>120</X><Y>560</Y></DYMOPoint>
+        <Size><Width>2900</Width><Height>420</Height></Size>
+      </ObjectLayout>
+    </TextObject>
+
+    <BarcodeObject>
+      <Name>Barcode</Name>
+      <Type>Code128Auto</Type>
+      <Text>PRD000002</Text>
+      <TextPosition>Bottom</TextPosition>
+      <TextFont Family="Arial" Size="8" Bold="False" Italic="False" Underline="False" Strikeout="False" />
+      <HorizontalAlignment>Center</HorizontalAlignment>
+      <ObjectLayout>
+        <DYMOPoint><X>220</X><Y>980</Y></DYMOPoint>
+        <Size><Width>2700</Width><Height>620</Height></Size>
+      </ObjectLayout>
+    </BarcodeObject>
+
+    <TextObject>
+      <Name>SKU</Name>
+      <StyledText>
+        <Element>
+          <String>SKU: PRD000002</String>
+          <Attributes>
+            <Font Family="Arial" Size="8" Bold="False" Italic="False" Underline="False" Strikeout="False" />
+            <ForeColor Alpha="255" Red="85" Green="85" Blue="85" />
+          </Attributes>
+        </Element>
+      </StyledText>
+      <HorizontalAlignment>Center</HorizontalAlignment>
+      <VerticalAlignment>Bottom</VerticalAlignment>
+      <ObjectLayout>
+        <DYMOPoint><X>120</X><Y>1640</Y></DYMOPoint>
+        <Size><Width>2900</Width><Height>140</Height></Size>
+      </ObjectLayout>
+    </TextObject>
+  </ObjectInfo>
+</DieCutLabel>

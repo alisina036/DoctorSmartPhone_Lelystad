@@ -236,8 +236,8 @@ export function DymoStatusCard() {
               </p>
               <ol className="text-xs text-red-700 list-decimal list-inside space-y-1">
                 <li>Zorg dat DYMO LabelWriter 450 aangesloten is</li>
-                <li>Start DYMO Connect software</li>
-                <li>Web Service moet draaien op poort 41951/41952</li>
+                <li>Start de Python GDI server</li>
+                <li>Controleer of poort 5001 bereikbaar is</li>
                 <li>Vernieuw de pagina</li>
               </ol>
             </div>

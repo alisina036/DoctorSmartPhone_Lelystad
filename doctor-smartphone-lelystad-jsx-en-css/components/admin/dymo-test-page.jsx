@@ -272,9 +272,9 @@ export function DymoTestPage() {
 
           <div className="bg-white p-3 rounded border border-blue-200 mt-3">
             <p className="font-mono text-xs">
-              <strong>DYMO Service URL:</strong>
+              <strong>Python GDI URL:</strong>
               <br />
-              http://localhost:41951
+              http://127.0.0.1:5001
             </p>
           </div>
         </CardContent>

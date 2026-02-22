@@ -12,11 +12,11 @@ export const DYMO_CONFIG = {
     resolution: 300,   // DPI
   },
 
-  // Web Service
+  // Python GDI Bridge
   service: {
-    host: 'localhost',
-    ports: [41951, 41952],
-    protocol: 'https',  // 'https' aanbevolen (Netlify/HTTPS)
+    host: '127.0.0.1',
+    ports: [5001],
+    protocol: 'http',
     timeout: 5000,     // milliseconds
   },
 
@@ -190,15 +190,15 @@ export const KASSA_CONFIG = {
  * Error Berichten (Nederlands)
  */
 export const ERROR_MESSAGES = {
-  DYMO_NOT_CONNECTED: 'DYMO printer niet verbonden. Start DYMO Connect en controleer USB verbinding.',
-  DYMO_SERVICE_UNAVAILABLE: 'DYMO Web Service niet bereikbaar op poort 41951/41952.',
+  DYMO_NOT_CONNECTED: 'DYMO printer niet verbonden. Controleer USB verbinding.',
+  DYMO_SERVICE_UNAVAILABLE: 'Python GDI server niet bereikbaar op poort 5001.',
   INVALID_BARCODE: 'Barcode bevat ongeldige karakters.',
   BARCODE_TOO_SHORT: 'Barcode moet minstens 3 karakters lang zijn.',
   MISSING_PRODUCT_DATA: 'Ontbrekende productgegevens.',
   PRINT_FAILED: 'Labeling mislukt. Controleer printer en probeer opnieuw.',
   PRINTER_ERROR: 'Printer fout. Controleer papier/labels en poging opnieuw.',
-  CORS_ERROR: 'CORS/HTTPS blokkade bij verbinding met DYMO. Controleer certificaat en CORS.',
-  TIMEOUT: 'DYMO service timeout. Controleer netwerk verbinding.',
+  CORS_ERROR: 'CORS blokkade bij verbinding met Python GDI bridge.',
+  TIMEOUT: 'Python GDI bridge timeout. Controleer netwerk verbinding.',
 }
 
 /**
@@ -216,7 +216,7 @@ export const SUCCESS_MESSAGES = {
  */
 export const getDymoServiceUrl = () => {
   const { service } = DYMO_CONFIG
-  const port = service.ports && service.ports.length ? service.ports[0] : 41951
+  const port = service.ports && service.ports.length ? service.ports[0] : 5001
   return `${service.protocol}://${service.host}:${port}`
 }
 

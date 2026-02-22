@@ -73,7 +73,7 @@ export default function DymoPrintComponent() {
 
       setStatus({
         success: result.available,
-        message: result.available ? `DYMO Service bereikbaar op ${result.url}` : 'DYMO Service niet bereikt. Check DYMO software!',
+        message: result.available ? `Python GDI server bereikbaar op ${result.url}` : 'Python GDI server niet bereikt. Start scripts/dymo_native_flask_server.py',
         title: result.available ? '✅ Connected' : '❌ Not Connected'
       })
     } catch (error) {
@@ -95,7 +95,7 @@ export default function DymoPrintComponent() {
           DYMO Label Printer
         </CardTitle>
         <CardDescription>
-          Print labels naar DYMO 450. Zonder printer? XML verschijnt in modal!
+          Print labels via Python GDI bridge naar DYMO 450.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -198,9 +198,9 @@ export default function DymoPrintComponent() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
             <div className="font-semibold mb-2">💡 Debug Info:</div>
             <ul className="space-y-1 ml-4 list-disc">
-              <li>Open DevTools (F12) → Console tab voor XML output</li>
-              <li>Zonder printer? XML verschijnt in modal overlay</li>
-              <li>Met printer? Label wordt direct geprint</li>
+              <li>Frontend print via /api/admin/dymo/python-native-proxy</li>
+              <li>Python server moet draaien op http://127.0.0.1:5001</li>
+              <li>Met printer: label wordt direct via GDI geprint</li>
             </ul>
           </div>
         </form>

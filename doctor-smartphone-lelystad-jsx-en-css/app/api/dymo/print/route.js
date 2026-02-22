@@ -1,57 +1,56 @@
-import { NextRequest, NextResponse } from 'next/server'
-import DymoService from '@/lib/dymo-service'
+import { NextResponse } from 'next/server'
 
-/**
- * POST /api/dymo/print
- * Print een product label via DYMO LabelWriter 450
- */
+const PROXY_URL = 'http://127.0.0.1:3000/api/admin/dymo/python-native-proxy'
+
 export async function POST(request) {
   try {
     const body = await request.json()
-    const { productData, quantity = 1 } = body
+    const productData = body?.productData || {}
+    const productName = String(productData?.name ?? body?.productName ?? '').trim()
+    const priceValue = productData?.price ?? body?.price
+    const sku = String(productData?.sku ?? productData?.barcode ?? body?.sku ?? '').trim()
 
-    if (!productData) {
+    if (!productName || priceValue == null || !sku) {
       return NextResponse.json(
-        { error: 'Productgegevens ontbreken' },
+        {
+          success: false,
+          error: 'productName, price en sku zijn verplicht',
+          errorCode: null,
+        },
         { status: 400 }
       )
     }
 
-    // Valideer barcode
-    const barcodeValidation = DymoService.validateBarcode(productData.barcode)
-    if (!barcodeValidation.valid) {
-      return NextResponse.json(
-        { error: barcodeValidation.error },
-        { status: 400 }
-      )
-    }
+    const price = typeof priceValue === 'number' ? priceValue.toFixed(2).replace('.', ',') : String(priceValue)
 
-    // Print label
-    const result = await DymoService.printLabel(productData, quantity)
+    const proxyResponse = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productName, price, sku }),
+      cache: 'no-store',
+    })
 
-    return NextResponse.json(result)
+    const data = await proxyResponse.json().catch(() => ({}))
+
+    return NextResponse.json(data, { status: proxyResponse.status })
   } catch (error) {
-    console.error('DYMO Print Error:', error)
     return NextResponse.json(
-      { error: error.message || 'Fout bij printen' },
+      {
+        success: false,
+        error: error?.message || 'Fout bij printen',
+        errorCode: null,
+      },
       { status: 500 }
     )
   }
 }
 
-/**
- * GET /api/dymo/status
- * Check DYMO printer status
- */
 export async function GET() {
-  try {
-    const status = await DymoService.checkDymoStatus()
-    return NextResponse.json(status)
-  } catch (error) {
-    console.error('DYMO Status Error:', error)
-    return NextResponse.json(
-      { connected: false, message: error.message },
-      { status: 500 }
-    )
-  }
+  return NextResponse.json(
+    {
+      success: false,
+      error: 'Gebruik /api/admin/dymo/python-native-proxy voor status checks',
+    },
+    { status: 410 }
+  )
 }
