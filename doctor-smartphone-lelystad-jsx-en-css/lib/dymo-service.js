@@ -1,5 +1,5 @@
 const PROXY_URL = '/api/admin/dymo/python-native-proxy'
-const LOCAL_NATIVE_BASE_URLS = ['http://127.0.0.1:5001', 'http://localhost:5001']
+const LOCAL_NATIVE_BASE_URLS = ['https://127.0.0.1:5001', 'https://localhost:5001']
 
 const isLocalhost = () => {
   if (typeof window === 'undefined') return true
