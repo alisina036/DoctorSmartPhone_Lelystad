@@ -1,4 +1,15 @@
 const PROXY_URL = '/api/admin/dymo/python-native-proxy'
+const LOCAL_NATIVE_BASE_URL = 'http://127.0.0.1:5001'
+
+const isLocalhost = () => {
+  if (typeof window === 'undefined') return true
+  const host = window.location.hostname
+  return host === 'localhost' || host === '127.0.0.1'
+}
+
+const getStatusUrl = () => (isLocalhost() ? PROXY_URL : `${LOCAL_NATIVE_BASE_URL}/health`)
+
+const getPrintUrl = () => (isLocalhost() ? PROXY_URL : `${LOCAL_NATIVE_BASE_URL}/print`)
 
 const normalizePrice = (price) => {
   if (typeof price === 'number') return price.toFixed(2).replace('.', ',')
@@ -8,7 +19,7 @@ const normalizePrice = (price) => {
 export class DymoService {
   static async checkDymoStatus() {
     try {
-      const response = await fetch(PROXY_URL, {
+      const response = await fetch(getStatusUrl(), {
         method: 'GET',
         cache: 'no-store',
       })
@@ -20,7 +31,7 @@ export class DymoService {
         connected,
         printers: connected ? ['DYMO LabelWriter 450'] : [],
         printerName: connected ? 'DYMO LabelWriter 450' : null,
-        url: 'http://127.0.0.1:5001',
+        url: LOCAL_NATIVE_BASE_URL,
         message: connected ? 'Python GDI server verbonden' : 'Python GDI server offline',
         errorType: connected ? null : 'offline',
       }
@@ -29,7 +40,7 @@ export class DymoService {
         connected: false,
         printers: [],
         printerName: null,
-        url: 'http://127.0.0.1:5001',
+        url: LOCAL_NATIVE_BASE_URL,
         message: 'Python GDI server offline',
         errorType: 'offline',
       }
@@ -47,7 +58,7 @@ export class DymoService {
       const price = normalizePrice(productData.price)
 
       for (let index = 0; index < quantity; index += 1) {
-        const response = await fetch(PROXY_URL, {
+        const response = await fetch(getPrintUrl(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ productName, price, sku: skuValue }),

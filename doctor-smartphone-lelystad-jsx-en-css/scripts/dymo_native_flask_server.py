@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import sys
 import tempfile
 from typing import Any
@@ -383,7 +384,16 @@ def print_via_windows_driver(product_name: str, price: str, sku: str) -> tuple[b
 
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:3000"])
+
+extra_origins = [origin.strip() for origin in os.getenv("DYMO_ALLOWED_ORIGINS", "").split(",") if origin.strip()]
+allowed_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    re.compile(r"^https://[a-zA-Z0-9-]+\.netlify\.app$"),
+    *extra_origins,
+]
+
+CORS(app, origins=allowed_origins)
 
 
 @app.route("/health", methods=["GET"])
