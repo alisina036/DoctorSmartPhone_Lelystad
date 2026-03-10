@@ -7,8 +7,10 @@ import { printLabel } from '@/lib/dymoService'
 export default function PrintLabelDialog({ product, onClose }) {
   const [quantity, setQuantity] = useState(1)
   const [isPrinting, setIsPrinting] = useState(false)
+  const [certError, setCertError] = useState(false)
   const handlePrint = async () => {
     if (isPrinting) return
+    setCertError(false)
 
     const labelName = product.deviceModelId?.name
       ? `${product.deviceModelId.name} - ${product.name}`
@@ -39,7 +41,12 @@ export default function PrintLabelDialog({ product, onClose }) {
         })
 
         if (!result?.success) {
-          alert(result?.message || 'Print mislukt')
+          const isCertIssue = /NetworkError|Failed to fetch|Load failed|null/i.test(result?.message || '')
+          if (isCertIssue) {
+            setCertError(true)
+          } else {
+            alert(result?.message || 'Print mislukt')
+          }
           return
         }
       }
@@ -65,6 +72,22 @@ export default function PrintLabelDialog({ product, onClose }) {
         </div>
 
         <div className="mb-6">
+          {certError && (
+            <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-4 text-sm">
+              <p className="font-bold text-yellow-800 mb-1">🔒 Certificaat niet vertrouwd</p>
+              <p className="text-yellow-700 mb-3">
+                Firefox blokkeert de lokale printservice. Klik op de knop hieronder, accepteer het certificaat in de nieuwe tab, sluit die tab en probeer opnieuw.
+              </p>
+              <a
+                href="https://127.0.0.1:5001/health"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-block bg-yellow-600 text-white px-4 py-2 rounded font-semibold hover:bg-yellow-700 transition-colors"
+              >
+                Certificaat accepteren →
+              </a>
+            </div>
+          )}
           <div className="bg-gray-50 p-4 rounded-lg mb-4">
             <p className="font-semibold text-sm text-gray-700 mb-2">Product:</p>
             <p className="font-bold">
