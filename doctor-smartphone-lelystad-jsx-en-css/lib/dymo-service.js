@@ -90,10 +90,6 @@ export class DymoService {
       const productName = String(productData.name).trim()
       const price = normalizePrice(productData.price)
 
-      if (isRemoteHttps()) {
-        throw new Error('HTTPS Netlify kan lokale HTTP printservice blokkeren. Gebruik localhost-dev of zet de lokale printservice op HTTPS.')
-      }
-
       for (let index = 0; index < quantity; index += 1) {
         const response = isLocalhost()
           ? await fetch(getPrintUrl(), {
@@ -121,10 +117,14 @@ export class DymoService {
         quantity,
       }
     } catch (error) {
+      const rawMessage = String(error?.message || 'Onbekende fout')
+      const likelyNetworkBlock = /Failed to fetch|NetworkError|Load failed/i.test(rawMessage)
+      const hint = likelyNetworkBlock ? ` ${getConnectivityHint()}` : ''
+
       return {
         success: false,
-        message: `Fout bij printen: ${error.message}`,
-        error: error.message,
+        message: `Fout bij printen: ${rawMessage}${hint}`,
+        error: rawMessage,
       }
     }
   }

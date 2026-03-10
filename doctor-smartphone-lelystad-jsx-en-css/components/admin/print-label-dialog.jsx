@@ -6,7 +6,10 @@ import { printLabel } from '@/lib/dymoService'
 
 export default function PrintLabelDialog({ product, onClose }) {
   const [quantity, setQuantity] = useState(1)
+  const [isPrinting, setIsPrinting] = useState(false)
   const handlePrint = async () => {
+    if (isPrinting) return
+
     const labelName = product.deviceModelId?.name
       ? `${product.deviceModelId.name} - ${product.name}`
       : product.name
@@ -26,15 +29,26 @@ export default function PrintLabelDialog({ product, onClose }) {
       return
     }
 
-    for (let i = 0; i < quantity; i++) {
-      await printLabel({
-        name: labelName,
-        price: Number(product.salePrice || 0),
-        sku: labelSku
-      })
-    }
+    setIsPrinting(true)
+    try {
+      for (let i = 0; i < quantity; i++) {
+        const result = await printLabel({
+          name: labelName,
+          price: Number(product.salePrice || 0),
+          sku: labelSku,
+        })
 
-    onClose()
+        if (!result?.success) {
+          alert(result?.message || 'Print mislukt')
+          return
+        }
+      }
+
+      alert(`Succes: ${quantity} label${quantity > 1 ? 's' : ''} geprint.`)
+      onClose()
+    } finally {
+      setIsPrinting(false)
+    }
   }
 
   return (
@@ -78,13 +92,15 @@ export default function PrintLabelDialog({ product, onClose }) {
         <div className="flex gap-3">
           <button
             onClick={handlePrint}
-            className="flex-1 bg-[#3ca0de] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#2d8bc7] transition-colors"
+            disabled={isPrinting}
+            className="flex-1 bg-[#3ca0de] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#2d8bc7] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Print {quantity} label{quantity > 1 ? 's' : ''}
+            {isPrinting ? 'Printen...' : `Print ${quantity} label${quantity > 1 ? 's' : ''}`}
           </button>
           <button
             onClick={onClose}
-            className="px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+            disabled={isPrinting}
+            className="px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             Annuleren
           </button>
