@@ -10,7 +10,16 @@ export default function PrintLabelDialog({ product, onClose }) {
     const labelName = product.deviceModelId?.name
       ? `${product.deviceModelId.name} - ${product.name}`
       : product.name
-    const labelSku = product.sku || product.barcode
+    const labelSku = [
+      product.sku,
+      product.barcode,
+      product.barcodeNumber,
+      product.ean,
+      product.imei,
+      product._id,
+    ]
+      .map((value) => String(value || '').trim())
+      .find((value) => value.length > 0)
 
     if (!labelSku) {
       alert('Geen SKU of barcode beschikbaar voor dit product.')
