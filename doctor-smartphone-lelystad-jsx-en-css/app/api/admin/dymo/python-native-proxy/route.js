@@ -2,19 +2,41 @@ import { NextResponse } from "next/server"
 
 export const runtime = "nodejs"
 
-const PYTHON_BASE_URLS = ["http://127.0.0.1:5001", "http://localhost:5001"]
+const PYTHON_BASE_URLS = [
+	"https://127.0.0.1:5001",
+	"https://localhost:5001",
+	"http://127.0.0.1:5001",
+	"http://localhost:5001",
+]
 
 async function fetchPython(path, init) {
 	let lastError = null
 
 	for (const baseUrl of PYTHON_BASE_URLS) {
 		try {
+			const previousTlsSetting = process.env.NODE_TLS_REJECT_UNAUTHORIZED
+			if (baseUrl.startsWith("https://")) {
+				process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+			}
+
 			const response = await fetch(`${baseUrl}${path}`, {
 				...init,
 				cache: "no-store",
 			})
+
+			if (baseUrl.startsWith("https://")) {
+				if (previousTlsSetting == null) {
+					delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
+				} else {
+					process.env.NODE_TLS_REJECT_UNAUTHORIZED = previousTlsSetting
+				}
+			}
+
 			return { response, baseUrl }
 		} catch (error) {
+			if (baseUrl.startsWith("https://")) {
+				delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
+			}
 			lastError = error
 		}
 	}

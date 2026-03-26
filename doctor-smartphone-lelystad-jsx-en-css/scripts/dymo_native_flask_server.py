@@ -425,4 +425,8 @@ def print_label() -> Any:
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5001, ssl_context="adhoc")
+    use_ssl = os.getenv("DYMO_USE_SSL", "1").strip().lower() not in {"0", "false", "no"}
+    if use_ssl:
+        app.run(host="127.0.0.1", port=5001, ssl_context="adhoc")
+    else:
+        app.run(host="127.0.0.1", port=5001)

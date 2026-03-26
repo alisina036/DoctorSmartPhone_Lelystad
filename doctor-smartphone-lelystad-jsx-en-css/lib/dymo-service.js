@@ -1,5 +1,10 @@
 const PROXY_URL = '/api/admin/dymo/python-native-proxy'
-const LOCAL_NATIVE_BASE_URLS = ['https://127.0.0.1:5001', 'https://localhost:5001']
+const LOCAL_NATIVE_BASE_URLS = [
+  'https://127.0.0.1:5001',
+  'https://localhost:5001',
+  'http://127.0.0.1:5001',
+  'http://localhost:5001',
+]
 
 const isLocalhost = () => {
   if (typeof window === 'undefined') return true
@@ -18,7 +23,7 @@ const getPrintUrl = () => (isLocalhost() ? PROXY_URL : `${LOCAL_NATIVE_BASE_URLS
 
 const getConnectivityHint = () => {
   if (isRemoteHttps()) {
-    return 'Je gebruikt HTTPS (Netlify). Browser blokkeert vaak toegang naar lokale HTTP-service (127.0.0.1:5001). Gebruik localhost-dev of een HTTPS lokale printservice.'
+    return 'Je gebruikt HTTPS (Netlify). Open eerst https://127.0.0.1:5001/health en accepteer het certificaat. Laat daarna de lokale printservice draaien.'
   }
   return 'Controleer of scripts/dymo_native_flask_server.py draait op 127.0.0.1:5001.'
 }

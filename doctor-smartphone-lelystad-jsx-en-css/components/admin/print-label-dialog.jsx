@@ -76,16 +76,31 @@ export default function PrintLabelDialog({ product, onClose }) {
             <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-4 text-sm">
               <p className="font-bold text-yellow-800 mb-1">🔒 Certificaat niet vertrouwd</p>
               <p className="text-yellow-700 mb-3">
-                Firefox blokkeert de lokale printservice. Klik op de knop hieronder, accepteer het certificaat in de nieuwe tab, sluit die tab en probeer opnieuw.
+                Bij een online HTTPS-site moet je eerst het lokale certificaat accepteren. Open één link hieronder, accepteer het certificaat en probeer opnieuw.
               </p>
-              <a
-                href="https://127.0.0.1:5001/health"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-block bg-yellow-600 text-white px-4 py-2 rounded font-semibold hover:bg-yellow-700 transition-colors"
-              >
-                Certificaat accepteren →
-              </a>
+              <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                <a
+                  href="https://localhost:5001/health"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block bg-yellow-600 text-white px-4 py-2 rounded font-semibold hover:bg-yellow-700 transition-colors text-center"
+                >
+                  Certificaat accepteren (localhost)
+                </a>
+                <a
+                  href="https://127.0.0.1:5001/health"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block bg-yellow-600 text-white px-4 py-2 rounded font-semibold hover:bg-yellow-700 transition-colors text-center"
+                >
+                  Certificaat accepteren (127.0.0.1)
+                </a>
+              </div>
+              <p className="text-yellow-700">
+                Zie je nog steeds "pagina niet gevonden" of geen verbinding? Start dan eerst de lokale service:
+                <br />
+                <span className="font-mono">.\.venv\Scripts\python.exe scripts\dymo_native_flask_server.py</span>
+              </p>
             </div>
           )}
           <div className="bg-gray-50 p-4 rounded-lg mb-4">

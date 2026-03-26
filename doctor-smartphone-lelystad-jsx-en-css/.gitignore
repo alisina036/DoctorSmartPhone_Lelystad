@@ -25,3 +25,12 @@ Thumbs.db
 
 # Misc
 *.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
