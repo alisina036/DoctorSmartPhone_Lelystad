@@ -21,7 +21,6 @@ function CarouselItem({ item, index, itemWidth, round, trackItemOffset, x, trans
       className={`carousel-item ${round ? 'round' : ''}`}
       style={{
         width: itemWidth,
-        height: round ? itemWidth : '100%',
         rotateY: rotateY,
         ...(round && { borderRadius: '50%' })
       }}
@@ -61,10 +60,11 @@ export default function MotionCarousel({
   autoplayDelay = 4000,
   pauseOnHover = true,
   loop = true,
-  round = false
+  round = true
 }) {
   const containerPadding = 16;
-  const itemWidth = baseWidth - containerPadding * 2;
+  const [containerWidth, setContainerWidth] = useState(baseWidth);
+  const itemWidth = Math.max(containerWidth - containerPadding * 2, 1);
   const trackItemOffset = itemWidth + GAP;
   const itemsForRender = useMemo(() => {
     if (!loop) return items;
@@ -79,6 +79,27 @@ export default function MotionCarousel({
   const [isAnimating, setIsAnimating] = useState(false);
 
   const containerRef = useRef(null);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const updateWidth = () => {
+      const width = container.getBoundingClientRect().width;
+      if (width > 0) {
+        setContainerWidth(width);
+      }
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(container);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [baseWidth]);
+
   useEffect(() => {
     if (pauseOnHover && containerRef.current) {
       const container = containerRef.current;
@@ -188,7 +209,7 @@ export default function MotionCarousel({
 
   if (items.length === 0) {
     return (
-      <div className="carousel-container" style={{ width: `${baseWidth}px` }}>
+      <div className="carousel-container" style={{ '--carousel-base-width': `${baseWidth}px` }}>
         <div className="carousel-empty">
           <p>Geen afbeeldingen beschikbaar</p>
         </div>
@@ -201,8 +222,7 @@ export default function MotionCarousel({
       ref={containerRef}
       className={`carousel-container ${round ? 'round' : ''}`}
       style={{
-        width: `${baseWidth}px`,
-        ...(round && { height: `${baseWidth}px`, borderRadius: '50%' })
+        '--carousel-base-width': `${baseWidth}px`
       }}
     >
       <motion.div
