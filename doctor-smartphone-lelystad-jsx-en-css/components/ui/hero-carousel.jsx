@@ -22,7 +22,7 @@ export default function HeroCarousel() {
   }, [])
 
   return (
-    <div className="flex items-center justify-center">
+    <div className="flex w-full items-center justify-center">
       <MotionCarousel
         items={items}
         baseWidth={500}

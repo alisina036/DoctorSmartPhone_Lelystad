@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'motion/react';
 
 import './motion-carousel.css';
@@ -21,8 +21,11 @@ function CarouselItem({ item, index, itemWidth, round, trackItemOffset, x, trans
       className={`carousel-item ${round ? 'round' : ''}`}
       style={{
         width: itemWidth,
-        rotateY: rotateY,
-        ...(round && { borderRadius: '50%' })
+        ...(round && {
+          height: itemWidth,
+          borderRadius: '50%'
+        }),
+        rotateY: round ? 0 : rotateY
       }}
       transition={transition}
     >
@@ -62,10 +65,9 @@ export default function MotionCarousel({
   loop = true,
   round = true
 }) {
-  const containerPadding = 16;
-  const [containerWidth, setContainerWidth] = useState(baseWidth);
-  const itemWidth = Math.max(containerWidth - containerPadding * 2, 1);
-  const trackItemOffset = itemWidth + GAP;
+  const [itemWidth, setItemWidth] = useState(0);
+  const measuredWidth = itemWidth > 0 ? itemWidth : Math.max(baseWidth - 32, 1);
+  const trackItemOffset = measuredWidth + GAP;
   const itemsForRender = useMemo(() => {
     if (!loop) return items;
     if (items.length === 0) return [];
@@ -79,14 +81,21 @@ export default function MotionCarousel({
   const [isAnimating, setIsAnimating] = useState(false);
 
   const containerRef = useRef(null);
-  useEffect(() => {
+  const viewportRef = useRef(null);
+
+  useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const updateWidth = () => {
-      const width = container.getBoundingClientRect().width;
+      const viewport = viewportRef.current;
+      const target = viewport ?? container;
+      const styles = getComputedStyle(container);
+      const paddingX = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
+      const width = viewport ? target.clientWidth : container.clientWidth - paddingX;
+
       if (width > 0) {
-        setContainerWidth(width);
+        setItemWidth(width);
       }
     };
 
@@ -94,11 +103,14 @@ export default function MotionCarousel({
 
     const observer = new ResizeObserver(updateWidth);
     observer.observe(container);
+    if (viewportRef.current) {
+      observer.observe(viewportRef.current);
+    }
 
     return () => {
       observer.disconnect();
     };
-  }, [baseWidth]);
+  }, [baseWidth, round, items.length]);
 
   useEffect(() => {
     if (pauseOnHover && containerRef.current) {
@@ -225,36 +237,43 @@ export default function MotionCarousel({
         '--carousel-base-width': `${baseWidth}px`
       }}
     >
-      <motion.div
-        className="carousel-track"
-        drag={isAnimating ? false : 'x'}
-        {...dragProps}
-        style={{
-          width: itemWidth,
-          gap: `${GAP}px`,
-          perspective: 1000,
-          perspectiveOrigin: `${position * trackItemOffset + itemWidth / 2}px 50%`,
-          x
-        }}
-        onDragEnd={handleDragEnd}
-        animate={{ x: -(position * trackItemOffset) }}
-        transition={effectiveTransition}
-        onAnimationStart={handleAnimationStart}
-        onAnimationComplete={handleAnimationComplete}
-      >
-        {itemsForRender.map((item, index) => (
-          <CarouselItem
-            key={`${item?.id ?? index}-${index}`}
-            item={item}
-            index={index}
-            itemWidth={itemWidth}
-            round={round}
-            trackItemOffset={trackItemOffset}
-            x={x}
-            transition={effectiveTransition}
-          />
-        ))}
-      </motion.div>
+      <div ref={viewportRef} className={`carousel-viewport ${round ? 'round' : ''}`}>
+        <motion.div
+          className="carousel-track"
+          drag={isAnimating ? false : 'x'}
+          {...dragProps}
+          style={{
+            width: measuredWidth,
+            ...(round && { height: measuredWidth }),
+            gap: `${GAP}px`,
+            ...(round
+              ? {}
+              : {
+                  perspective: 1000,
+                  perspectiveOrigin: `${position * trackItemOffset + measuredWidth / 2}px 50%`
+                }),
+            x
+          }}
+          onDragEnd={handleDragEnd}
+          animate={{ x: -(position * trackItemOffset) }}
+          transition={effectiveTransition}
+          onAnimationStart={handleAnimationStart}
+          onAnimationComplete={handleAnimationComplete}
+        >
+          {itemsForRender.map((item, index) => (
+            <CarouselItem
+              key={`${item?.id ?? index}-${index}`}
+              item={item}
+              index={index}
+              itemWidth={measuredWidth}
+              round={round}
+              trackItemOffset={trackItemOffset}
+              x={x}
+              transition={effectiveTransition}
+            />
+          ))}
+        </motion.div>
+      </div>
       <div className={`carousel-indicators-container ${round ? 'round' : ''}`}>
         <div className="carousel-indicators">
           {items.map((_, index) => (

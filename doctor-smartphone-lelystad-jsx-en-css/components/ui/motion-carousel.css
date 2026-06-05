@@ -1,19 +1,38 @@
 .carousel-container {
   position: relative;
   width: 100%;
-  max-width: var(--carousel-base-width, 468px);
+  max-width: min(100%, var(--carousel-base-width, 468px));
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 24px;
   padding: 16px;
+  box-sizing: border-box;
   --outer-r: 24px;
   --p-distance: 12px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
   backdrop-filter: blur(10px);
 }
 
+.carousel-viewport {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.carousel-viewport.round {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
 .carousel-track {
   display: flex;
+  height: 100%;
+}
+
+.carousel-viewport.round .carousel-track {
+  height: 100%;
 }
 
 .carousel-item {
@@ -23,6 +42,7 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
+  box-sizing: border-box;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: calc(var(--outer-r) - var(--p-distance));
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
@@ -43,13 +63,12 @@
 }
 
 .carousel-item.round {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  background: transparent;
   position: relative;
-  bottom: 0.1em;
+  flex-shrink: 0;
   width: 100%;
-  aspect-ratio: 1 / 1;
-  height: auto !important;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  height: 100%;
+  border: none;
   justify-content: center;
   align-items: center;
   text-align: center;
@@ -58,17 +77,19 @@
 }
 
 .carousel-item-header.round {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  aspect-ratio: 1 / 1;
-  height: auto !important;
+  height: 100%;
   border-radius: 50%;
   overflow: hidden;
 }
 
 .carousel-item.round .carousel-image-container {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  aspect-ratio: 1 / 1;
-  height: auto !important;
+  height: 100%;
   border-radius: 50%;
   overflow: hidden;
 }
@@ -82,7 +103,7 @@
 .carousel-indicators-container.round {
   position: absolute;
   z-index: 2;
-  bottom: 3em;
+  bottom: 8%;
   left: 50%;
   transform: translateX(-50%);
 }
@@ -99,36 +120,33 @@
   width: 100%;
   padding: 0;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .carousel-image-container {
   width: 100%;
   aspect-ratio: 1 / 1;
-  height: auto;
   position: relative;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   background: rgba(0, 0, 0, 0.3);
 }
 
 .carousel-image-background {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   filter: blur(20px);
-  transform: scale(1.1);
+  transform: scale(1.05);
+  transform-origin: center center;
   z-index: 1;
 }
 
 .carousel-image-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.4);
@@ -137,8 +155,7 @@
 
 .carousel-image {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
