@@ -63,6 +63,7 @@
     "next": "16.0.10",
     "next-themes": "^0.4.6",
     "nodemailer": "^6.9.16",
+    "ogl": "^1.0.11",
     "react": "^18.3.1",
     "react-barcode": "^1.6.1",
     "react-day-picker": "9.8.0",
